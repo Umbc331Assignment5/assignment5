@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 
 typedef struct datagram_v1
@@ -7,15 +8,7 @@ typedef struct datagram_v1
 	uint8_t type : 4;
 	uint16_t length;
 	uint16_t s : 1;
-	uint32_t data;
-	/*
-	char version : 4;
-	char type : 4;
-	short length;
-	short s : 1;
-	int data;
-	*/
-
+	//uint32_t data;
 } datagram_v1;
 
 typedef struct datagram_v2
@@ -26,7 +19,7 @@ typedef struct datagram_v2
 	uint8_t s : 1;
 	uint8_t duplicate : 1;
 	uint16_t checksum;
-	uint32_t data;
+	//uint32_t data;
 } datagram_v2;
 
 typedef struct datagram_v3
@@ -37,10 +30,10 @@ typedef struct datagram_v3
 	uint16_t s : 1;
 	uint16_t id : 15;
 	uint16_t checksum;
-	uint32_t data;
+	//uint32_t data;
 } datagram_v3;
 
-typedef struct typemasks
+static const struct typemasks
 {
 	uint8_t sixteen_bit_int;// = 0;
 	uint8_t thirty_two_bit_integer;// = 1;
@@ -51,38 +44,32 @@ typedef struct typemasks
 	uint8_t skip;// = 9;
 	uint8_t burn;// = 10;
 	uint8_t stop;// = 11;
-} typemask;
+} typemask = { 0, 1, 2, 3, 7, 8, 9, 10, 11};
 
 int main(int argc, char ** argv)
 {
 	argv++;
-	//char * first = *argv;
-	//struct Datagram d;
-	//d.i = 7;
-	//d.y = 6;
-	datagram_v1 d;
-	d.version = 3;
-	printf("HELLO\n %lu\n", sizeof(d));
-	int c;
-	const char * fname = *argv;
+	char c = 0;
 	FILE * fp = NULL;
-	fp = fopen(fname, 'r');
-	if (fp == NULL)
-	{
-		printf("Error opening file\n");
-	}
-	else
-	{
-		do 
-		{
-			c = getc(fp);
-		} while(c != EOF);
-	}
+	char * headbuff = malloc(4); // all versions have a header 4 bytes long
+	if (headbuff==NULL) { printf("Memory error\n"); return -1;}
+	fp = fopen(*argv, "rb");
+	if (fp==NULL) { printf("Error opening file\n"); return -2; }
 	
+	while(c != EOF)
+	{
+		c = getc(fp);
+		printf("C: %c", c);
+	}
+	free(headbuff);
+	fclose(fp);
 	return 0;
 }
 
-
+void read_header(FILE * fp)
+{
+	
+}
 
 
 
