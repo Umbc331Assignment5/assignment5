@@ -2,11 +2,23 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+typedef struct dummy
+{
+
+	union versiontype //instead of bit fields we should implement masks and shiffting
+	{
+		uint8_t version;
+		uint8_t type;
+	}vt;
+	uint8_t length;
+	uint16_t s;
+} dummy;
+
 typedef struct datagram_v1
 {
 	uint8_t version : 4;
 	uint8_t type : 4;
-	uint16_t length;
+	uint8_t length;
 	uint16_t s : 1;
 	//uint32_t data;
 } datagram_v1;
@@ -15,7 +27,7 @@ typedef struct datagram_v2
 {
 	uint8_t version : 4;
 	uint8_t type : 4;
-	uint16_t length;
+	uint8_t length;
 	uint8_t s : 1;
 	uint8_t duplicate : 1;
 	uint16_t checksum;
@@ -26,7 +38,7 @@ typedef struct datagram_v3
 {
 	uint8_t version : 4;
 	uint8_t type : 4;
-	uint16_t length;
+	uint8_t length;
 	uint16_t s : 1;
 	uint16_t id : 15;
 	uint16_t checksum;
@@ -51,18 +63,30 @@ int main(int argc, char ** argv)
 	argv++;
 	char c = 0;
 	FILE * fp = NULL;
-	char * headbuff = malloc(4); // all versions have a header 4 bytes long
+	size_t result;
+	dummy d;
+	printf("Dummy size %lu\n", sizeof(d)); // should be 4
+	
+	
+
+	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
 	if (headbuff==NULL) { printf("Memory error\n"); return -1;}
 	fp = fopen(*argv, "rb");
 	if (fp==NULL) { printf("Error opening file\n"); return -2; }
-	
-	while(c != EOF)
-	{
-		c = getc(fp);
-		printf("C: %c", c);
-	}
+	result = fread(headbuff, 4, 1, fp);
+	int thetype = headbuff->vt.type;
+	int thelength = headbuff->vt.version;
+	int skipbit = 0;
+	printf("We read version %d type %d length %d skipbit %d\n",
+			thetype ,thelength, skipbit);
+	//while(c != EOF)
+	//{
+	//	c = getc(fp);
+	//	printf("C: %c", c);
+	//}
 	free(headbuff);
 	fclose(fp);
+
 	return 0;
 }
 
