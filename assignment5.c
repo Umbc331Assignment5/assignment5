@@ -6,8 +6,13 @@ void read_sixteenbit_i(FILE * fp, uint8_t length);
 void read_thirtytwobit_i(FILE * fp, uint8_t length);
 void read_thirtytwobit_f(FILE * fp, uint8_t length);
 void read_sixtyfourbit_f(FILE * fp, uint8_t length);
+void read_junk(FILE * fp, uint8_t length);
+void read_burn(FILE * fp, uint8_t length);
+void read_skip(FILE * fp, uint8_t length);
+void read_stop(FILE * fp, uint8_t length);
 void read_ascii(FILE * fp, uint8_t length);
 void read_data(FILE * fp, uint8_t type, uint8_t length);
+
 
 typedef struct dummy
 {
@@ -185,6 +190,30 @@ void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 }
 
 void read_ascii(FILE * fp, uint8_t length)
+{
+	int numbytes = length;
+	printf("Bytes: %d\n", numbytes);
+}
+
+void read_junk(FILE * fp, uint8_t length)
+{
+	int numbytes = length;
+	printf("Bytes: %d\n", numbytes);
+}
+
+void read_skip(FILE * fp, uint8_t length)
+{
+	int numbytes = length;
+	printf("Bytes: %d\n", numbytes);
+}
+
+void read_burn(FILE * fp, uint8_t length)
+{
+	int numbytes = length;
+	printf("Bytes: %d\n", numbytes);
+}
+
+void read_stop(FILE * fp, uint8_t length)
 {
 	int numbytes = length;
 	printf("Bytes: %d\n", numbytes);
