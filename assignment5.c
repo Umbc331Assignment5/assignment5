@@ -74,12 +74,14 @@ int main(int argc, char ** argv)
 	fp = fopen(*argv, "rb");
 	if (fp==NULL) { printf("Error opening file\n"); return -2; }
 	result = fread(headbuff, 4, 1, fp);
+
 	int theversion = headbuff->vt.version & 0x0F;
 	int thetype = (headbuff->vt.type & 0xF0) >> 4;
 	int thelength = headbuff->length;
 	int skipbit = headbuff->s & 0x1;
+
 	printf("We read version %d type %d length %d skipbit %d\n",
-			thetype ,thelength, skipbit);
+			theversion, thetype ,thelength ,skipbit);
 	//while(c != EOF)
 	//{
 	//	c = getc(fp);
