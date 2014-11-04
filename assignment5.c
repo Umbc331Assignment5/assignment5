@@ -45,18 +45,17 @@ typedef struct datagram_v3
 	//uint32_t data;
 } datagram_v3;
 
-static const struct typemasks
-{
-	uint8_t sixteen_bit_int;// = 0;
-	uint8_t thirty_two_bit_integer;// = 1;
-	uint8_t thirty_two_bit_floating;// = 2;
-	uint8_t sixty_four_bit_floating;// = 3;
-	uint8_t ascii_char;// = 7;
-	uint8_t junk;// = 8;
-	uint8_t skip;// = 9;
-	uint8_t burn;// = 10;
-	uint8_t stop;// = 11;
-} typemask = { 0, 1, 2, 3, 7, 8, 9, 10, 11};
+//TYPES
+const uint8_t SIXTEEN_BIT_INT = 0;
+const uint8_t THIRTY_TWO_BIT_INTEGER = 1;
+const uint8_t THIRTY_TWO_BIT_FLOATING = 2;
+const uint8_t SIXTY_FOUR_BIT_FLOATING = 3;
+const uint8_t ASCII_CHAR = 7;
+const uint8_t JUNK = 8;
+const uint8_t SKIP = 9;
+const uint8_t BURN = 10;
+const uint8_t STOP = 11;
+
 
 
 int main(int argc, char ** argv)
@@ -68,8 +67,6 @@ int main(int argc, char ** argv)
 	dummy d;
 	printf("Dummy size %lu\n", sizeof(d)); // should be 4
 	
-	
-
 	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
 	if (headbuff==NULL) { printf("Memory error\n"); return -1;}
 	fp = fopen(*argv, "rb");
@@ -85,15 +82,8 @@ int main(int argc, char ** argv)
 		printf("We read version %d type %d length %d skipbit %d\n",
 			theversion, thetype ,thelength ,skipbit);
 		
-		//free(headbuff);
 	}
 
-	
-	//while(c != EOF)
-	//{
-	//	c = getc(fp);
-	//	printf("C: %c", c);
-	//}
 	free(headbuff);
 	fclose(fp);
 
@@ -105,28 +95,78 @@ void read_header(FILE * fp)
 	
 }
 
+void version(uint8_t v)
+{
+	switch(v)
+	{
+		case 0: // 16 bit int
+		{
+			break;
+		}
+		case 1: // 32 bit int
+		{
+			break;
+		}
+		case 2: // 32 bit float
+		{
+			break;
+		}
+		case 3: // 64 bit float
+		{
+			break;
+		}
+		case 7: // ascii
+		{
+			break;
+		}
+		case 8: // junk
+		{
+			break;
+		}
+		case 9: // skip
+		{
+			break;
+		}
+		case 10: // burn
+		{
+			break;
+		}
+		case 11: // stop
+		{
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+
+
+}
+
+
 //Assumes length is the number of the items specified
-void read_sixteenbit_i(uint8_t length)
+void read_sixteenbit_i(FILE * fp, uint8_t length)
 {
 	int numbytes = length * 2;
 }
 
-void read_thirtytwobit_i(uint8_t length)
+void read_thirtytwobit_i(FILE * fp, uint8_t length)
 {
 	int numbytes = length * 4;
 }
 
-void read_sixteenbit_f(uint8_t length)
-{
-	int numbytes = length * 2;
-}
-
-void read_thirtytwobit_f(uint8_t length)
+void read_thirtytwobit_f(FILE * fp, uint8_t length)
 {
 	int numbytes = length * 4;
 }
 
-void read_ascii()
+void read_sixtyfourbit_f(FILE * fp, uint8_t length)
+{
+	int numbytes = length * 8;
+}
+
+void read_ascii(FILE * fp, uint8_t length)
 {
 
 }
