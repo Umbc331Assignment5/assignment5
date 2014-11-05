@@ -94,23 +94,40 @@ int main(int argc, char ** argv)
 		uint8_t skipbit = headbuff->s & 0x1;				//takes first bit
 		printf("We read version %d type %d length %d skipbit %d\n",
 			(int)theversion, (int)thetype ,(int)thelength ,(int)skipbit);
+		//checks the skip bit if true proccess the next thelength bytes as junk
+		if(skipbit) // if skipbit is set
+		{
+			read_junk(fp,thelength);
+			continue;
+		}
+
 		if(theversion == 1)
 		{
 			if(read_data(fp, thetype, thelength)){ break;} //if true were done
 			continue;
-		}
+		} //end version 1
 		if(theversion == 2)
 		{
+			uint8_t dupbit = headbuff->s & 0x2;
+			if(dupbit)
+			{
+				fpos_t pos = fgetpos(fp); //remember position
+				if(read_data(fp, thetype, thelength)){ break;} //if true we're done
+				fsetpos(fp, &pos);
+				if(read_data(fp, thetype, thelength)){ break;} //Read it again
+				continue;
+			}
+
 			if(read_data(fp, thetype, thelength)){ break;} //if true were done
 			continue;
-		}
+		} //end version 2
 		if(theversion == 3)
 		{
 			if(read_data(fp, thetype, thelength)){ break;} //if true were done
+			//TODO should care about checksum after he specifies what the algorithm is
 			continue;
-		}
-		
-	}
+		} //end version 3
+	}//end while
 
 	free(headbuff);
 	fclose(fp);
@@ -177,7 +194,6 @@ int read_data(FILE * fp, uint8_t type, uint8_t length)
 			break;
 		}
 	}
-
 	return 0;
 }
 
@@ -188,11 +204,18 @@ void read_sixteenbit_i(FILE * fp, uint8_t length)
 	uint16_t * numbers = malloc(sizeof(uint16_t) * length);
 	uint16_t * temp = numbers;
 	int numbytes = length * 2;
+	int result;
 	int i = 0;
-	fread(numbers,sizeof(uint16_t),length,fp);
+	if((result = fread(numbers,sizeof(uint16_t),length,fp)) != length)
+	{
+		printf("Invalid number of items ran out of file\n");
+		free(numbers);
+		return;
+	}
+	
 	for(;i < length;i++)
 	{
-		printf("16 bit numbers %u\n",*temp);
+		printf("16 bit number %u\n",*temp);
 		temp++;
 	}
 	printf("Bytes: %d\n", numbytes);
@@ -202,7 +225,23 @@ void read_sixteenbit_i(FILE * fp, uint8_t length)
 void read_thirtytwobit_i(FILE * fp, uint8_t length)
 {
 	uint32_t * numbers = malloc(sizeof(uint32_t) * length);
+	uint32_t * temp = numbers;
 	int numbytes = length * 4;
+	int result;
+	int i = 0;
+	if((result = fread(numbers,sizeof(uint32_t),length,fp)) != length)
+	{
+		printf("Invalid number of items ran out of file\n");
+		free(numbers);
+		return;
+	}
+
+	for(;i < length;i++)
+	{
+		printf("32 bit number %d\n",*temp);
+		temp++;
+	}
+
 	printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
