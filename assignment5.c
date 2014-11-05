@@ -11,7 +11,7 @@ void read_burn(FILE * fp, uint8_t length);
 void read_skip(FILE * fp, uint8_t length);
 void read_stop(FILE * fp, uint8_t length);
 void read_ascii(FILE * fp, uint8_t length);
-void read_data(FILE * fp, uint8_t type, uint8_t length);
+int read_data(FILE * fp, uint8_t type, uint8_t length);
 
 
 typedef struct dummy
@@ -94,7 +94,21 @@ int main(int argc, char ** argv)
 		uint8_t skipbit = headbuff->s & 0x1;				//takes first bit
 		printf("We read version %d type %d length %d skipbit %d\n",
 			(int)theversion, (int)thetype ,(int)thelength ,(int)skipbit);
-		read_data(fp, thetype, thelength);
+		if(theversion == 1)
+		{
+			if(read_data(fp, thetype, thelength)){ break;} //if true were done
+			continue;
+		}
+		if(theversion == 2)
+		{
+			if(read_data(fp, thetype, thelength)){ break;} //if true were done
+			continue;
+		}
+		if(theversion == 3)
+		{
+			if(read_data(fp, thetype, thelength)){ break;} //if true were done
+			continue;
+		}
 		
 	}
 
@@ -109,7 +123,7 @@ void read_header(FILE * fp)
 	
 }
 
-void read_data(FILE * fp, uint8_t type, uint8_t length)
+int read_data(FILE * fp, uint8_t type, uint8_t length)
 {
 	switch(type)
 	{
@@ -140,18 +154,22 @@ void read_data(FILE * fp, uint8_t type, uint8_t length)
 		}
 		case 8: // junk
 		{
+			read_junk(fp,length);
 			break;
 		}
 		case 9: // skip
 		{
+			read_skip(fp,length);
 			break;
 		}
 		case 10: // burn
 		{
+			read_burn(fp,length);
 			break;
 		}
 		case 11: // stop
 		{
+			return 1; //Were done
 			break;
 		}
 		default:
@@ -160,62 +178,91 @@ void read_data(FILE * fp, uint8_t type, uint8_t length)
 		}
 	}
 
-
+	return 0;
 }
 
 
 //Assumes length is the number of the items specified
 void read_sixteenbit_i(FILE * fp, uint8_t length)
 {
+	uint16_t * numbers = malloc(sizeof(uint16_t) * length);
+	uint16_t * temp = numbers;
 	int numbytes = length * 2;
+	int i = 0;
+	fread(numbers,sizeof(uint16_t),length,fp);
+	for(;i < length;i++)
+	{
+		printf("16 bit numbers %u\n",*temp);
+		temp++;
+	}
 	printf("Bytes: %d\n", numbytes);
+	free(numbers);
 }
 
 void read_thirtytwobit_i(FILE * fp, uint8_t length)
 {
+	uint32_t * numbers = malloc(sizeof(uint32_t) * length);
 	int numbytes = length * 4;
 	printf("Bytes: %d\n", numbytes);
+	free(numbers);
 }
 
 void read_thirtytwobit_f(FILE * fp, uint8_t length)
 {
-	int numbytes = length * 4;
+	uint32_t * numbers = malloc(sizeof(uint32_t) * length);
+	int numbytes = (int)length * 4;
 	printf("Bytes: %d\n", numbytes);
+	free(numbers);
 }
 
 void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 {
-	int numbytes = length * 8;
+	uint64_t * numbers = malloc(sizeof(uint64_t) * length);
+	int numbytes = (int)length * 8;
 	printf("Bytes: %d\n", numbytes);
+	free(numbers);
 }
 
 void read_ascii(FILE * fp, uint8_t length)
 {
-	int numbytes = length;
+	uint8_t * asciichars = malloc(sizeof(uint8_t) * length);	
+	int numbytes = (int)length;
 	printf("Bytes: %d\n", numbytes);
+	free(asciichars);
 }
 
 void read_junk(FILE * fp, uint8_t length)
 {
-	int numbytes = length;
+	int numbytes = (int)length;
+	int i = 0;
+	for(i; i < length; i++)
+	{
+		getc(fp);
+	}
 	printf("Bytes: %d\n", numbytes);
 }
 
 void read_skip(FILE * fp, uint8_t length)
 {
-	int numbytes = length;
+	int numbytes = (int)length;
+	int i = 0;
+	for(i; i < length; i++)
+	{
+		getc(fp);
+	}
 	printf("Bytes: %d\n", numbytes);
 }
 
 void read_burn(FILE * fp, uint8_t length)
 {
-	int numbytes = length;
+	int numbytes = (int)length;
+	//FYYYARRR
 	printf("Bytes: %d\n", numbytes);
 }
 
 void read_stop(FILE * fp, uint8_t length)
 {
-	int numbytes = length;
+	int numbytes = (int)length;
 	printf("Bytes: %d\n", numbytes);
 }
 
