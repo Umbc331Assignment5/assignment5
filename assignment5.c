@@ -186,7 +186,7 @@ void read_sixteenbit_i(FILE * fp, uint8_t length)
 	//print what we read in TODO:double check this is correct representation
 	for(;i < length;i++)
 	{
-		printf("16 bit number %u\n",*temp);
+		printf("16 bit number %u\n",(short)*temp);
 		temp++;
 	}
 	printf("Bytes: %d\n", numbytes);
@@ -218,19 +218,58 @@ void read_thirtytwobit_i(FILE * fp, uint8_t length)
 	printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
-//TODO for 32 bit float
+//Reads in length number of 32 bit floating point numbers
 void read_thirtytwobit_f(FILE * fp, uint8_t length)
 {
 	uint32_t * numbers = malloc(sizeof(uint32_t) * length);
+	uint32_t * temp = numbers;
 	int numbytes = (int)length * 4;
+
+	int result; 	//for storing number of successful things read by fread
+	int i = 0;		//for our printing loop below
+
+	//Didnt have enough file to read the number of items
+	if((result = fread(numbers,sizeof(uint32_t),length,fp)) != length)
+	{
+		printf("Invalid number of items ran out of file\n");
+		free(numbers);
+		return;
+	}
+	//print what we read in TODO:double check this is correct representation
+	for(;i < length;i++)
+	{
+		printf("32 bit number %f\n",(float)*temp);
+		temp++;
+	}
+
 	printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
-//TODO for 64 bit float
+//Reads in length number of 64 bit floating point numbers
 void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 {
 	uint64_t * numbers = malloc(sizeof(uint64_t) * length);
+	uint64_t * temp = numbers;
 	int numbytes = (int)length * 8;
+
+	int result; 	//for storing number of successful things read by fread
+	int i = 0;		//for our printing loop below
+
+	//Didnt have enough file to read the number of items
+	if((result = fread(numbers,sizeof(uint64_t),length,fp)) != length)
+	{
+		printf("Invalid number of items ran out of file\n");
+		free(numbers);
+		return;
+	}
+	//print what we read in TODO:double check this is correct representation
+	for(;i < length;i++)
+	{
+		printf("64 bit number %f\n",(double)*temp);
+		temp++;
+	}
+
+	
 	printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
