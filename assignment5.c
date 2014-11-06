@@ -189,7 +189,7 @@ void read_sixteenbit_i(FILE * fp, uint8_t length)
 		printf("16 bit number %u\n",(short)*temp);
 		temp++;
 	}
-	printf("Bytes: %d\n", numbytes);
+	//printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
 //Reads length number of 32 bit integers
@@ -215,7 +215,7 @@ void read_thirtytwobit_i(FILE * fp, uint8_t length)
 		temp++;
 	}
 
-	printf("Bytes: %d\n", numbytes);
+	//printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
 //Reads in length number of 32 bit floating point numbers
@@ -242,7 +242,7 @@ void read_thirtytwobit_f(FILE * fp, uint8_t length)
 		temp++;
 	}
 
-	printf("Bytes: %d\n", numbytes);
+	//printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
 //Reads in length number of 64 bit floating point numbers
@@ -270,7 +270,7 @@ void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 	}
 
 	
-	printf("Bytes: %d\n", numbytes);
+	//printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
 //Reads in length number of bytes and tries to print them, adds '\0' 
@@ -291,7 +291,7 @@ void read_ascii(FILE * fp, uint8_t length)
 	temp = temp + length;	//goto end of string
 	*temp = '\0'; 			//add the nullbyte
 	printf("Ascii chars: %s\n", asciichars);	//prints whole string
-	printf("Bytes: %d\n", numbytes);	//Debug
+	//printf("Bytes: %d\n", numbytes);	//Debug
 	free(asciichars);
 }
 //iterates through length number of bytes
@@ -303,7 +303,7 @@ void read_junk(FILE * fp, uint8_t length)
 	{
 		getc(fp); //grabs another char
 	}
-	printf("Bytes: %d\n", numbytes);
+	printf("Ignored %d Bytes: \n", numbytes);
 }
 //Different from skip bit, skips length number of 32 bit integers
 void read_skip(FILE * fp, uint8_t length)
@@ -314,7 +314,7 @@ void read_skip(FILE * fp, uint8_t length)
 	{
 		getc(fp);
 	}
-	printf("Bytes: %d\n", numbytes);
+	printf("Skipped %d 32 bit ints:\n", length);
 }
 //FYARRR
 void read_burn(FILE * fp, uint8_t length)
