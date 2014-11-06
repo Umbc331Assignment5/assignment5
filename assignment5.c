@@ -25,7 +25,7 @@ typedef struct dummy
 	uint8_t length;
 	uint16_t s;
 } dummy;
-
+/*
 typedef struct datagram_v1
 {
 	union versiontype vt;
@@ -57,6 +57,7 @@ typedef struct datagram_v3
 	uint8_t checksum;
 	//uint32_t data;
 } datagram_v3;
+*/
 
 //TYPES
 const uint8_t SIXTEEN_BIT_INT = 0;
@@ -77,8 +78,8 @@ int main(int argc, char ** argv)
 	char c = 0;
 	FILE * fp = NULL;
 	size_t result;
-	dummy d;
-	printf("Datagram3 size %lu\n", sizeof(datagram_v3)); // should be 4
+	//dummy d;
+	//printf("Datagram3 size %lu\n", sizeof(datagram_v3)); // should be 4
 	
 	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
 	if (headbuff==NULL) { printf("Memory error\n"); return -1;}
@@ -111,7 +112,8 @@ int main(int argc, char ** argv)
 			uint8_t dupbit = headbuff->s & 0x2;
 			if(dupbit)
 			{
-				fpos_t pos = fgetpos(fp); //remember position
+				fpos_t pos;
+				fgetpos(fp, &pos); //remember position
 				if(read_data(fp, thetype, thelength)){ break;} //if true we're done
 				fsetpos(fp, &pos);
 				if(read_data(fp, thetype, thelength)){ break;} //Read it again
@@ -264,8 +266,20 @@ void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 
 void read_ascii(FILE * fp, uint8_t length)
 {
-	uint8_t * asciichars = malloc(sizeof(uint8_t) * length);	
+	uint8_t * asciichars = malloc((sizeof(uint8_t) * length) +1); //one more for \0
+	uint8_t * temp = asciichars;	
 	int numbytes = (int)length;
+	int result;
+	int i = 0;
+	if((result = fread(asciichars,sizeof(uint8_t),length,fp)) != length)
+	{
+		printf("Invalid number of items ran out of file\n");
+		free(asciichars);
+		return;
+	}
+	temp = temp + length;
+	*temp = '\0'; //add the nullbyte
+	printf("Ascii chars: %s\n", asciichars);
 	printf("Bytes: %d\n", numbytes);
 	free(asciichars);
 }
