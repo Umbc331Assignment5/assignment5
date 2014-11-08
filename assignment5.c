@@ -14,7 +14,7 @@ int read_data(FILE * fp, uint8_t type, uint8_t length);
 
 typedef struct dummy
 {
-	union versiontype //instead of bit fields we should implement masks and shiffting
+	union versiontype 
 	{
 		uint8_t version;
 		uint8_t type;
@@ -22,6 +22,38 @@ typedef struct dummy
 	uint8_t length;
 	uint16_t s;
 } dummy;
+
+typedef struct dummy2
+{
+	union versiontype2
+	{
+		uint8_t version :4;
+		uint8_t type : 4;
+	}vt;
+	uint8_t length;
+	union validate_stuff
+	{
+		struct v1
+		{
+			uint16_t s : 1;
+		} v1;
+		struct v2
+		{
+			uint8_t s : 1;
+			uint8_t d : 1;
+			uint8_t checksum;
+		} v2;
+		struct v3
+		{
+			uint8_t s : 1;
+			uint8_t id : 7;
+			uint8_t checksum;
+		} v3;
+
+	} vs;
+	
+} dummy2;
+
 
 //TYPES
 const uint8_t SIXTEEN_BIT_INT = 0;
@@ -39,7 +71,8 @@ int main(int argc, char ** argv)
 	argv++; // make it look at first argument
 	FILE * fp = NULL;
 	size_t result;
-
+	//dummy2 test;
+	//printf("SIZE dummy2 %lu\n", sizeof(test));
 	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
 	if (headbuff==NULL) { printf("Memory error\n"); return -1;}
 	fp = fopen(*argv, "rb");
