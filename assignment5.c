@@ -84,12 +84,13 @@ int main(int argc, char ** argv)
 		uint8_t thetype = (headbuff->vt.type & 0xF0) >> 4; 	//gets higher 4 bits
 		uint8_t thelength = headbuff->length;
 		uint8_t skipbit = headbuff->s & 0x1;				//takes first bit
-		printf("We read version %d type %d length %d skipbit %d\n",
-			(int)theversion, (int)thetype ,(int)thelength ,(int)skipbit);
+		
 
 		//checks the skip bit if true proccess the next thelength bytes as junk
 		if(skipbit) // if skipbit is set
 		{
+			printf("\nWe read version %d type %d length %d skipbit %d\n",
+					(int)theversion, (int)thetype ,(int)thelength ,(int)skipbit);
 			read_junk(fp,thelength);
 			continue;
 		}
@@ -97,6 +98,9 @@ int main(int argc, char ** argv)
 		//version 1 datagram
 		if(theversion == 1)
 		{
+			printf("\nWe read version: %d type: %d length: %d skipbit: %d\n",
+					(int)theversion, (int)thetype ,(int)thelength ,(int)skipbit);
+
 			if(read_data(fp, thetype, thelength)){ break;} //if true were done
 			continue;
 		} //end version 1
@@ -105,8 +109,13 @@ int main(int argc, char ** argv)
 		if(theversion == 2)
 		{
 			uint8_t dupbit = headbuff->s & 0x2;
+			uint16_t checksum = headbuff->s & 0xFF00;
 			if(dupbit)
 			{
+				printf("\nWe read version: %d type %d length: %d skipbit: %d dupbit: %d\n",
+						(int)theversion, (int)thetype ,
+						(int)thelength, (int)skipbit, (int)dupbit);
+
 				fpos_t pos;
 				fgetpos(fp, &pos); //remember position
 				if(read_data(fp, thetype, thelength)){ break;} //if true we're done
@@ -122,6 +131,13 @@ int main(int argc, char ** argv)
 		//version 3 datagram
 		if(theversion == 3)
 		{
+			uint8_t id = headbuff->s & 0xFE;
+			uint16_t checksum = headbuff->s & 0xFF00;
+			printf("\nWe read version: %d type: %d length: %d skipbit: %d id: %d checksum: %d\n",
+					(int)theversion, (int)thetype,
+					(int)thelength, (int)skipbit,
+					(int)id, (int)checksum);
+
 			if(read_data(fp, thetype, thelength)){ break;} //if true were done
 			//TODO should care about checksum after he specifies what the algorithm is
 			continue;
