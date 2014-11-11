@@ -71,20 +71,30 @@ int main(int argc, char ** argv)
 	argv++; // make it look at first argument
 	FILE * fp = NULL;
 	size_t result;
-	//dummy2 test;
-	//printf("SIZE dummy2 %lu\n", sizeof(test));
+
 	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
+	//dummy2 * headbuff = malloc(4);
+
 	if (headbuff==NULL) { printf("Memory error\n"); return -1;}
 	fp = fopen(*argv, "rb");
 	if (fp==NULL) { printf("Error opening file\n"); return -2; }
 
 	while((result = fread(headbuff, 4, 1, fp)) == 1)
 	{
+		//old way
 		uint8_t theversion = headbuff->vt.version & 0x0F; //gets lower 4 bits
 		uint8_t thetype = (headbuff->vt.type & 0xF0) >> 4; 	//gets higher 4 bits
 		uint8_t thelength = headbuff->length;
 		uint8_t skipbit = headbuff->s & 0x1;				//takes first bit
 		
+		//maybe more readable way
+		//uint8_t theversion = headbuff->vt.version;
+		//uint8_t thetype = headbuff->vt.type;
+		//uint8_t thelength = headbuff->length;
+		//uint8_t skipbit = headbuff->vs.v1.s;
+		//uint8_t dupbit = headbuff->vs.v2.d;
+		//uint8_t id = headbuff->vs.v3.id;
+		//uint8_t checksum = headbuff->vs.v3.checksum;	//shouldnt matter if its v2 or v3
 
 		//checks the skip bit if true proccess the next thelength bytes as junk
 		if(skipbit) // if skipbit is set
