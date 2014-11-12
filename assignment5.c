@@ -1,17 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-
-void read_sixteenbit_i(FILE * fp, uint8_t length, uint16_t * thenumbers);
-void read_thirtytwobit_i(FILE * fp, uint8_t length);
-void read_thirtytwobit_f(FILE * fp, uint8_t length);
-void read_sixtyfourbit_f(FILE * fp, uint8_t length);
-void read_junk(FILE * fp, uint8_t length);
-void read_burn(FILE * fp, uint8_t length);
-void read_skip(FILE * fp, uint8_t length);
-void read_ascii(FILE * fp, uint8_t length);
-int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version);
-int calc_checksum(uint8_t * data,int length);
+/*
+*	Authors: Matt Henry
+*
+*/
 
 typedef struct dummy
 {
@@ -23,6 +16,27 @@ typedef struct dummy
 	uint8_t length;
 	uint16_t s;
 } dummy;
+
+//TODO SKIP control is wrong
+//TODO 	checksum needs to skip the right amount of bytes
+//		based on length and type of data
+//TODO	input file needs to be edited to have valid checksums and not valid
+
+//TODO	Add your names
+//TODO	rewrite/clean up make pretty the code
+//TODO	Choose either bitfield struct way or masking way
+
+
+void read_sixteenbit_i(FILE * fp, uint8_t length);
+void read_thirtytwobit_i(FILE * fp, uint8_t length);
+void read_thirtytwobit_f(FILE * fp, uint8_t length);
+void read_sixtyfourbit_f(FILE * fp, uint8_t length);
+void read_junk(FILE * fp, uint8_t length);
+void read_burn(FILE * fp, uint8_t length);
+void read_skip(FILE * fp, uint8_t length);
+void read_ascii(FILE * fp, uint8_t length);
+int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version);
+uint8_t checkchecksum(dummy * dp);
 
 typedef struct dummy2
 {
@@ -71,7 +85,7 @@ int main(int argc, char ** argv)
 {
 	argv++; // make it look at first argument
 	FILE * fp = NULL;
-	size_t result;
+	
 
 	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
 	//dummy2 * headbuff = malloc(4);
@@ -80,12 +94,14 @@ int main(int argc, char ** argv)
 	fp = fopen(*argv, "rb");
 	if (fp==NULL) { printf("Error opening file\n"); return -2; }
 
+	size_t result;
+
 	while((result = fread(headbuff, 4, 1, fp)) == 1)
 	{
 		//old way
 		uint8_t theversion = headbuff->vt.version & 0x0F; //gets lower 4 bits
 		uint8_t thetype = (headbuff->vt.type & 0xF0) >> 4; 	//gets higher 4 bits
-		uint8_t thelength = headbuff->length;
+		uint8_t thelength = headbuff->length - 4;			//takes away the header length
 		uint8_t skipbit = headbuff->s & 0x1;				//takes first bit
 		
 		//maybe more readable way
@@ -101,7 +117,8 @@ int main(int argc, char ** argv)
 		if(skipbit) // if skipbit is set
 		{
 			printf("\nWe read version %d type %d length %d skipbit %d\n",
-					(int)theversion, (int)thetype ,(int)thelength ,(int)skipbit);
+					(int)theversion, (int)thetype, 
+					(int)thelength, (int)skipbit);
 			read_junk(fp,thelength);
 			continue;
 		}
@@ -110,7 +127,8 @@ int main(int argc, char ** argv)
 		if(theversion == 1)
 		{
 			printf("\nWe read version: %d type: %d length: %d skipbit: %d\n",
-					(int)theversion, (int)thetype ,(int)thelength ,(int)skipbit);
+					(int)theversion, (int)thetype,
+					(int)thelength ,(int)skipbit);
 
 			if(read_data(fp, thetype, thelength, theversion)){ break;} //if true were done
 			continue;
@@ -120,12 +138,16 @@ int main(int argc, char ** argv)
 		if(theversion == 2)
 		{
 			uint8_t dupbit = headbuff->s & 0x2;
-			uint16_t checksum = headbuff->s & 0xFF00;
+			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
+			//TODO do proper things instead of 'continue'
+			//if(checksum != checkchecksum(headbuff)){ continue; }
+
 			if(dupbit)
 			{
 				printf("\nWe read version: %d type %d length: %d skipbit: %d dupbit: %d\n",
-						(int)theversion, (int)thetype ,
-						(int)thelength, (int)skipbit, (int)dupbit);
+						(int)theversion, (int)thetype,
+						(int)thelength, (int)skipbit,
+						(int)dupbit);
 
 				fpos_t pos;
 				fgetpos(fp, &pos); //remember position
@@ -133,7 +155,7 @@ int main(int argc, char ** argv)
 				fsetpos(fp, &pos);
 				if(read_data(fp, thetype, thelength, theversion)){ break;} //Read it again
 				continue;
-			}
+			}//end if dupbit
 
 			if(read_data(fp, thetype, thelength, theversion)){ break;} //if true were done
 			continue;
@@ -143,7 +165,10 @@ int main(int argc, char ** argv)
 		if(theversion == 3)
 		{
 			uint8_t id = headbuff->s & 0xFE;
-			uint16_t checksum = headbuff->s & 0xFF00;
+			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
+			//TODO do proper things instead of 'continue'
+			//if(checksum != checkchecksum(headbuff)){ continue; }
+
 			printf("\nWe read version: %d type: %d length: %d skipbit: %d id: %d checksum: %d\n",
 					(int)theversion, (int)thetype,
 					(int)thelength, (int)skipbit,
@@ -159,13 +184,11 @@ int main(int argc, char ** argv)
 	fclose(fp);
 
 	return 0;
-}
-//TODO maybe abstract away reading dummy header to here
-void read_header(FILE * fp)
-{
-	
-}
+}//end main
 
+///////////////////////////////////////////////////////////
+////////////////// Functions //////////////////////////////
+///////////////////////////////////////////////////////////
 //Big ol switch for which kind of data to read in
 int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version)
 {
@@ -173,17 +196,7 @@ int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version)
 	{
 		case 0: // 16 bit int
 		{
-			uint16_t * numbers = malloc(sizeof(uint16_t) * length); //allocate space
-			uint16_t * temp = numbers;				//pointer for iterating
-			read_sixteenbit_i(fp,length,numbers);
-			int i = 0;
-			for(;i < (int)length;i++)
-			{
-				printf("16 bit number %u\n",(short)*temp);
-				temp++;
-			}
-
-			free(numbers);
+			read_sixteenbit_i(fp,length);
 			break;
 		}
 		case 1: // 32 bit int
@@ -238,10 +251,10 @@ int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version)
 /////All assume length is the number of the items specified
 ///////////////////////////////////////////////////////////
 //Reads length number of 16 bit integers
-void read_sixteenbit_i(FILE * fp, uint8_t length, uint16_t * thenumbers)
+void read_sixteenbit_i(FILE * fp, uint8_t length)
 {
-	//uint16_t * numbers = malloc(sizeof(uint16_t) * length); //allocate space
-	uint16_t * numbers = thenumbers;
+	uint16_t * numbers = malloc(sizeof(uint16_t) * length); //allocate space
+	//uint16_t * numbers = thenumbers;
 	uint16_t * temp = numbers;				//pointer for iterating
 	int numbytes = length * 2;		//debugging
 	int result;	//for storing number of successful things read by fread
@@ -255,14 +268,14 @@ void read_sixteenbit_i(FILE * fp, uint8_t length, uint16_t * thenumbers)
 		return;
 	}
 	//print what we read in TODO:double check this is correct representation
-	//for(;i < length;i++)
-	//{
-	//	printf("16 bit number %u\n",(short)*temp);
-	//	temp++;
-	//}
+	for(;i < length;i++)
+	{
+		printf("16 bit number %u\n",(short)*temp);
+		temp++;
+	}
 
 
-	//free(numbers);
+	free(numbers);
 }
 ///////////////////////////////////////////////////////////
 
@@ -412,33 +425,14 @@ void read_burn(FILE * fp, uint8_t length)
 }
 ///////////////////////////////////////////////////////////
 
-//TODO algorithm is sum of each byte into 1 byte sum
-//		overflow dont care
-//		then find the value that makes it roll over to 0
-int calc_checksum(uint8_t * data, int length)
+//returns checksum value calculated from the dummy struct pointer
+uint8_t checkchecksum(dummy * dp)
 {
-	int i = 0;
 	uint8_t checksum = 0;
-	uint8_t * localdata = data;
-	//uint8_t * localdata = malloc(length);
-	uint8_t * temp = localdata;
-	fpos_t pos;
-	fgetpos((FILE*)data, &pos); //remember position
-
-	for(i; i < length; i++)
-	{
-		fread(localdata,length,1,(FILE*)data);
-	}
-	
-	for(i; i < length; i++)
-	{
-		checksum += *temp;
-		temp++;
-	}
-
-	fsetpos((FILE*)data, &pos); //restores position
-	free(localdata);
-	return (int)checksum;
+	checksum += dp->vt.version; //has version and type inside
+	checksum += dp->length;
+	checksum += dp->s & 0xFF; //takes just the first byte
+	return 256 - checksum;
 }
 ///////////////////////////////////////////////////////////
 
