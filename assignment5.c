@@ -18,6 +18,8 @@ typedef struct dummy
 } dummy;
 
 //TODO SKIP control is wrong
+//TODO Skipbit is also wrong needs to skip the correct datasize 
+//		Instead of the number of bytes
 //TODO 	checksum needs to skip the right amount of bytes
 //		based on length and type of data
 //TODO	input file needs to be edited to have valid checksums and not valid
@@ -119,7 +121,7 @@ int main(int argc, char ** argv)
 			printf("\nWe read version %d type %d length %d skipbit %d\n",
 					(int)theversion, (int)thetype, 
 					(int)thelength, (int)skipbit);
-			read_junk(fp,thelength);
+			read_junk(fp, typetosize(thetype) * thelength);//hack to skip right number of bytes
 			continue;
 		}
 
@@ -139,8 +141,13 @@ int main(int argc, char ** argv)
 		{
 			uint8_t dupbit = headbuff->s & 0x2;
 			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
-			//TODO do proper things instead of 'continue'
-			//if(checksum != checkchecksum(headbuff)){ continue; }
+
+			if(checksum != checkchecksum(headbuff))
+			{ 
+				printf("Bad Checksum\n");
+				read_junk(fp, typetosize(thetype) * (int)thelength);//hack to skip right number of bytes
+				continue; 
+			}
 
 			if(dupbit)
 			{
@@ -167,7 +174,12 @@ int main(int argc, char ** argv)
 			uint8_t id = headbuff->s & 0xFE;
 			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
 			//TODO do proper things instead of 'continue'
-			//if(checksum != checkchecksum(headbuff)){ continue; }
+			if(checksum != checkchecksum(headbuff))
+			{ 
+				printf("Bad Checksum\n");
+				read_junk(fp, typetosize(thetype) * (int)thelength);//hack to skip right number of bytes
+				continue;  
+			}
 
 			printf("\nWe read version: %d type: %d length: %d skipbit: %d id: %d checksum: %d\n",
 					(int)theversion, (int)thetype,
@@ -436,7 +448,38 @@ uint8_t checkchecksum(dummy * dp)
 }
 ///////////////////////////////////////////////////////////
 
-
+//Takes in the type returns the factor length needs to multiplied by
+//for the correct number of bytes
+int typetosize(int type)
+{
+	switch(type)
+	{
+		case 0:
+		{
+			return 2;
+		}
+		case 1:
+		{
+			return 4;
+		}
+		case 2:
+		{
+			return 4;
+		}
+		case 3:
+		{
+			return 8;
+		}
+		case 4:
+		{
+			return 1;
+		}
+		default:
+		{
+			return 1;
+		}
+	}//end switch
+}//end typetosize
 
 
 
