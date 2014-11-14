@@ -101,7 +101,7 @@ int main(int argc, char ** argv)
 		{
 			uint8_t dupbit = headbuff->s & 0x2;
 			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
-
+			
 			if(checksum != checkchecksum(headbuff))
 			{
 				printf("\nWe read version: %d type %d length: %d skipbit: %d dupbit: %d checksum: %d\n",
@@ -151,6 +151,7 @@ int main(int argc, char ** argv)
 				read_junk(fp, (int)thelength);
 				continue;  
 			}
+			
 
 			printf("\nWe read version: %d type: %d length: %d skipbit: %d id: %d checksum: %d\n",
 					(int)theversion, (int)thetype,
@@ -239,19 +240,19 @@ void read_sixteenbit_i(FILE * fp, uint8_t length)
 	uint16_t * numbers = malloc(length); //allocate space
 
 	uint16_t * temp = numbers;				//pointer for iterating
-	int numbytes = length * 2;		//debugging
+	int numberthings = length / 2;
 	int result;	//for storing number of successful things read by fread
 	int i = 0;	//for our printing loop below
 
 	//Didnt have enough file to read the number of items
-	if((result = fread(numbers,sizeof(uint16_t),length,fp)) != length)
+	if((result = fread(numbers,sizeof(uint16_t),numberthings,fp)) != numberthings)
 	{
 		printf("Invalid number of items ran out of file\n");
 		free(numbers);
 		return;
 	}
 	//print what we read in TODO:double check this is correct representation
-	for(;i < length;i++)
+	for(;i < numberthings;i++)
 	{
 		printf("16 bit number %u\n",(short)*temp);
 		temp++;
@@ -267,19 +268,19 @@ void read_thirtytwobit_i(FILE * fp, uint8_t length)
 	//uint32_t * numbers = malloc(sizeof(uint32_t) * length); //allocate space
 	uint32_t * numbers = malloc(length); //allocate space
 	uint32_t * temp = numbers; //get an iterating pointer
-	int numbytes = length * 4; //debuging
+	int numberthings = length / 4;
 	int result; 	//for storing number of successful things read by fread
 	int i = 0;		//for our printing loop below
 
 	//Didnt have enough file to read the number of items
-	if((result = fread(numbers,sizeof(uint32_t),length,fp)) != length)
+	if((result = fread(numbers,sizeof(uint32_t),numberthings,fp)) != numberthings)
 	{
 		printf("Invalid number of items ran out of file\n");
 		free(numbers);
 		return;
 	}
 	//print what we read in TODO:double check this is correct representation
-	for(;i < length;i++)
+	for(;i < numberthings;i++)
 	{
 		printf("32 bit number %d\n",*temp);
 		temp++;
@@ -294,20 +295,20 @@ void read_thirtytwobit_f(FILE * fp, uint8_t length)
 	//uint32_t * numbers = malloc(sizeof(uint32_t) * length);
 	uint32_t * numbers = malloc(length);
 	uint32_t * temp = numbers;
-	int numbytes = (int)length * 4;
+	int numberthings = length / 4;
 
 	int result; 	//for storing number of successful things read by fread
 	int i = 0;		//for our printing loop below
 
 	//Didnt have enough file to read the number of items
-	if((result = fread(numbers,sizeof(uint32_t),length,fp)) != length)
+	if((result = fread(numbers,sizeof(uint32_t),numberthings,fp)) != numberthings)
 	{
 		printf("Invalid number of items ran out of file\n");
 		free(numbers);
 		return;
 	}
 	//print what we read in TODO:double check this is correct representation
-	for(;i < length;i++)
+	for(;i < numberthings;i++)
 	{
 		printf("32 bit number %f\n",(float)*temp);
 		temp++;
@@ -324,20 +325,20 @@ void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 	//uint64_t * numbers = malloc(sizeof(uint64_t) * length);
 	uint64_t * numbers = malloc(length);
 	uint64_t * temp = numbers;
-	int numbytes = (int)length * 8;
+	int numberthings = (int)length / 8;
 
 	int result; 	//for storing number of successful things read by fread
 	int i = 0;		//for our printing loop below
 
 	//Didnt have enough file to read the number of items
-	if((result = fread(numbers,sizeof(uint64_t),length,fp)) != length)
+	if((result = fread(numbers,sizeof(uint64_t),numberthings,fp)) != numberthings)
 	{
 		printf("Invalid number of items ran out of file\n");
 		free(numbers);
 		return;
 	}
 	//print what we read in TODO:double check this is correct representation
-	for(;i < length;i++)
+	for(;i < numberthings;i++)
 	{
 		printf("64 bit number %f\n",(double)*temp);
 		temp++;
