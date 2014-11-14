@@ -5,7 +5,6 @@
 *	Authors: Matt Henry
 *
 */
-
 typedef struct dummy
 {
 	union versiontype 
@@ -17,10 +16,9 @@ typedef struct dummy
 	uint16_t s;
 } dummy;
 
+//TODO Length is wrong should be strictly number of bytes
 //TODO	Add your names
 //TODO	rewrite/clean up make pretty the code
-//TODO	Choose either bitfield struct way or masking way
-
 
 void read_sixteenbit_i(FILE * fp, uint8_t length);
 void read_thirtytwobit_i(FILE * fp, uint8_t length);
@@ -31,37 +29,6 @@ void read_burn(FILE * fp, uint8_t length);
 void read_ascii(FILE * fp, uint8_t length);
 int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version);
 uint8_t checkchecksum(dummy * dp);
-
-typedef struct dummy2
-{
-	union versiontype2
-	{
-		uint8_t version :4;
-		uint8_t type : 4;
-	}vt;
-	uint8_t length;
-	union validate_stuff
-	{
-		struct v1
-		{
-			uint16_t s : 1;
-		} v1;
-		struct v2
-		{
-			uint8_t s : 1;
-			uint8_t d : 1;
-			uint8_t checksum;
-		} v2;
-		struct v3
-		{
-			uint8_t s : 1;
-			uint8_t id : 7;
-			uint8_t checksum;
-		} v3;
-
-	} vs;
-	
-} dummy2;
 
 //global for skipping N datagrams
 int skipnumber = 0;
@@ -82,7 +49,6 @@ int main(int argc, char ** argv)
 	argv++; // make it look at first argument
 	FILE * fp = NULL;
 	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
-	//dummy2 * headbuff = malloc(4);
 
 	if (headbuff==NULL) { printf("Memory error\n"); return -1;}
 	fp = fopen(*argv, "rb");
@@ -92,27 +58,19 @@ int main(int argc, char ** argv)
 	
 	while((result = fread(headbuff, 4, 1, fp)) == 1)
 	{
-		//old way
+		//Read in the header
 		uint8_t theversion = headbuff->vt.version & 0x0F; //gets lower 4 bits
 		uint8_t thetype = (headbuff->vt.type & 0xF0) >> 4; 	//gets higher 4 bits
 		uint8_t thelength = headbuff->length - 4;			//takes away the header length
 		uint8_t skipbit = headbuff->s & 0x1;				//takes first bit
 		
-		//maybe more readable way
-		//uint8_t theversion = headbuff->vt.version;
-		//uint8_t thetype = headbuff->vt.type;
-		//uint8_t thelength = headbuff->length;
-		//uint8_t skipbit = headbuff->vs.v1.s;
-		//uint8_t dupbit = headbuff->vs.v2.d;
-		//uint8_t id = headbuff->vs.v3.id;
-		//uint8_t checksum = headbuff->vs.v3.checksum;	//shouldnt matter if its v2 or v3
-
 		if(skipnumber > 0)
 		{
 			printf("\nWe read version %d type %d length %d skipbit %d\n",
 					(int)theversion, (int)thetype, 
 					(int)thelength, (int)skipbit);
-			read_junk(fp, typetosize(thetype) * thelength);//hack to skip right number of bytes
+			//read_junk(fp, typetosize(thetype) * thelength);//hack to skip right number of bytes
+			read_junk(fp, (int)thelength);
 			skipnumber--;			
 		}
 
@@ -122,7 +80,8 @@ int main(int argc, char ** argv)
 			printf("\nWe read version %d type %d length %d skipbit %d\n",
 					(int)theversion, (int)thetype, 
 					(int)thelength, (int)skipbit);
-			read_junk(fp, typetosize(thetype) * thelength);//hack to skip right number of bytes
+			//read_junk(fp, typetosize(thetype) * thelength);//hack to skip right number of bytes
+			read_junk(fp, (int)thelength);
 			continue;
 		}
 
@@ -144,9 +103,14 @@ int main(int argc, char ** argv)
 			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
 
 			if(checksum != checkchecksum(headbuff))
-			{ 
+			{
+				printf("\nWe read version: %d type %d length: %d skipbit: %d dupbit: %d checksum: %d\n",
+						(int)theversion, (int)thetype,
+						(int)thelength, (int)skipbit,
+						(int)dupbit,(int)checksum);
 				printf("Bad Checksum\n");
-				read_junk(fp, typetosize(thetype) * (int)thelength);//hack to skip right number of bytes
+				//read_junk(fp, typetosize(thetype) * (int)thelength);//hack to skip right number of bytes
+				read_junk(fp, (int)thelength);
 				continue; 
 			}
 
@@ -177,8 +141,14 @@ int main(int argc, char ** argv)
 
 			if(checksum != checkchecksum(headbuff))
 			{ 
+				printf("\nWe read version: %d type %d length: %d skipbit: %d checksum: %d\n",
+						(int)theversion, (int)thetype,
+						(int)thelength, (int)skipbit,
+						(int)checksum);
+
 				printf("Bad Checksum\n");
-				read_junk(fp, typetosize(thetype) * (int)thelength);//hack to skip right number of bytes
+				//read_junk(fp, typetosize(thetype) * (int)thelength);//hack to skip right number of bytes
+				read_junk(fp, (int)thelength);
 				continue;  
 			}
 
@@ -265,8 +235,9 @@ int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version)
 //Reads length number of 16 bit integers
 void read_sixteenbit_i(FILE * fp, uint8_t length)
 {
-	uint16_t * numbers = malloc(sizeof(uint16_t) * length); //allocate space
-	//uint16_t * numbers = thenumbers;
+	//uint16_t * numbers = malloc(sizeof(uint16_t) * length); //allocate space
+	uint16_t * numbers = malloc(length); //allocate space
+
 	uint16_t * temp = numbers;				//pointer for iterating
 	int numbytes = length * 2;		//debugging
 	int result;	//for storing number of successful things read by fread
@@ -293,7 +264,8 @@ void read_sixteenbit_i(FILE * fp, uint8_t length)
 //Reads length number of 32 bit integers
 void read_thirtytwobit_i(FILE * fp, uint8_t length)
 {
-	uint32_t * numbers = malloc(sizeof(uint32_t) * length); //allocate space
+	//uint32_t * numbers = malloc(sizeof(uint32_t) * length); //allocate space
+	uint32_t * numbers = malloc(length); //allocate space
 	uint32_t * temp = numbers; //get an iterating pointer
 	int numbytes = length * 4; //debuging
 	int result; 	//for storing number of successful things read by fread
@@ -319,7 +291,8 @@ void read_thirtytwobit_i(FILE * fp, uint8_t length)
 //Reads in length number of 32 bit floating point numbers
 void read_thirtytwobit_f(FILE * fp, uint8_t length)
 {
-	uint32_t * numbers = malloc(sizeof(uint32_t) * length);
+	//uint32_t * numbers = malloc(sizeof(uint32_t) * length);
+	uint32_t * numbers = malloc(length);
 	uint32_t * temp = numbers;
 	int numbytes = (int)length * 4;
 
@@ -348,7 +321,8 @@ void read_thirtytwobit_f(FILE * fp, uint8_t length)
 //Reads in length number of 64 bit floating point numbers
 void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 {
-	uint64_t * numbers = malloc(sizeof(uint64_t) * length);
+	//uint64_t * numbers = malloc(sizeof(uint64_t) * length);
+	uint64_t * numbers = malloc(length);
 	uint64_t * temp = numbers;
 	int numbytes = (int)length * 8;
 
@@ -377,7 +351,8 @@ void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 //Reads in length number of bytes and tries to print them, adds '\0' 
 void read_ascii(FILE * fp, uint8_t length)
 {
-	uint8_t * asciichars = malloc((sizeof(uint8_t) * length) +1); //one more for \0
+	//uint8_t * asciichars = malloc((sizeof(uint8_t) * length) +1); //one more for \0
+	uint8_t * asciichars = malloc(length +1); //one more for \0
 	uint8_t * temp = asciichars;	//iterator pointer
 	int numbytes = (int)length;		//Debug
 	int result;
@@ -430,38 +405,7 @@ uint8_t checkchecksum(dummy * dp)
 }
 ///////////////////////////////////////////////////////////
 
-//Takes in the type returns the factor length needs to multiplied by
-//for the correct number of bytes
-int typetosize(int type)
-{
-	switch(type)
-	{
-		case 0:
-		{
-			return 2;
-		}
-		case 1:
-		{
-			return 4;
-		}
-		case 2:
-		{
-			return 4;
-		}
-		case 3:
-		{
-			return 8;
-		}
-		case 4:
-		{
-			return 1;
-		}
-		default:
-		{
-			return 1;
-		}
-	}//end switch
-}//end typetosize
+
 
 
 
