@@ -81,7 +81,6 @@ int main(int argc, char ** argv)
 {
 	argv++; // make it look at first argument
 	FILE * fp = NULL;
-	
 	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
 	//dummy2 * headbuff = malloc(4);
 
@@ -195,7 +194,6 @@ int main(int argc, char ** argv)
 
 	free(headbuff);
 	fclose(fp);
-
 	return 0;
 }//end main
 
@@ -288,7 +286,6 @@ void read_sixteenbit_i(FILE * fp, uint8_t length)
 		temp++;
 	}
 
-
 	free(numbers);
 }
 ///////////////////////////////////////////////////////////
@@ -315,8 +312,6 @@ void read_thirtytwobit_i(FILE * fp, uint8_t length)
 		printf("32 bit number %d\n",*temp);
 		temp++;
 	}
-
-	//printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
 ///////////////////////////////////////////////////////////
