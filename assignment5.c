@@ -17,13 +17,6 @@ typedef struct dummy
 	uint16_t s;
 } dummy;
 
-//TODO SKIP control is wrong
-//TODO Skipbit is also wrong needs to skip the correct datasize 
-//		Instead of the number of bytes
-//TODO 	checksum needs to skip the right amount of bytes
-//		based on length and type of data
-//TODO	input file needs to be edited to have valid checksums and not valid
-
 //TODO	Add your names
 //TODO	rewrite/clean up make pretty the code
 //TODO	Choose either bitfield struct way or masking way
@@ -35,7 +28,6 @@ void read_thirtytwobit_f(FILE * fp, uint8_t length);
 void read_sixtyfourbit_f(FILE * fp, uint8_t length);
 void read_junk(FILE * fp, uint8_t length);
 void read_burn(FILE * fp, uint8_t length);
-void read_skip(FILE * fp, uint8_t length);
 void read_ascii(FILE * fp, uint8_t length);
 int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version);
 uint8_t checkchecksum(dummy * dp);
@@ -71,6 +63,8 @@ typedef struct dummy2
 	
 } dummy2;
 
+//global for skipping N datagrams
+int skipnumber = 0;
 
 //TYPES
 const uint8_t SIXTEEN_BIT_INT = 0;
@@ -88,7 +82,6 @@ int main(int argc, char ** argv)
 	argv++; // make it look at first argument
 	FILE * fp = NULL;
 	
-
 	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
 	//dummy2 * headbuff = malloc(4);
 
@@ -97,7 +90,7 @@ int main(int argc, char ** argv)
 	if (fp==NULL) { printf("Error opening file\n"); return -2; }
 
 	size_t result;
-
+	
 	while((result = fread(headbuff, 4, 1, fp)) == 1)
 	{
 		//old way
@@ -114,6 +107,15 @@ int main(int argc, char ** argv)
 		//uint8_t dupbit = headbuff->vs.v2.d;
 		//uint8_t id = headbuff->vs.v3.id;
 		//uint8_t checksum = headbuff->vs.v3.checksum;	//shouldnt matter if its v2 or v3
+
+		if(skipnumber > 0)
+		{
+			printf("\nWe read version %d type %d length %d skipbit %d\n",
+					(int)theversion, (int)thetype, 
+					(int)thelength, (int)skipbit);
+			read_junk(fp, typetosize(thetype) * thelength);//hack to skip right number of bytes
+			skipnumber--;			
+		}
 
 		//checks the skip bit if true proccess the next thelength bytes as junk
 		if(skipbit) // if skipbit is set
@@ -173,7 +175,7 @@ int main(int argc, char ** argv)
 		{
 			uint8_t id = headbuff->s & 0xFE;
 			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
-			//TODO do proper things instead of 'continue'
+
 			if(checksum != checkchecksum(headbuff))
 			{ 
 				printf("Bad Checksum\n");
@@ -187,7 +189,6 @@ int main(int argc, char ** argv)
 					(int)id, (int)checksum);
 
 			if(read_data(fp, thetype, thelength, theversion)){ break;} //if true were done
-			//TODO should care about checksum after he specifies what the algorithm is
 			continue;
 		} //end version 3
 	}//end while
@@ -238,7 +239,8 @@ int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version)
 		}
 		case 9: // skip
 		{
-			read_skip(fp,length);
+			skipnumber = length;
+			//read_skip(fp,length);
 			break;
 		}
 		case 10: // burn
@@ -410,21 +412,6 @@ void read_junk(FILE * fp, uint8_t length)
 		getc(fp); //grabs another char
 	}
 	printf("Ignored %d Bytes: \n", numbytes);
-}
-///////////////////////////////////////////////////////////
-//TODO THIS IS WRONG
-//TODO Read N number of datagrams each has its own variable length dictated 
-//		by the respective header
-//Different from skip bit, skips length number of 32 bit integers
-void read_skip(FILE * fp, uint8_t length)
-{
-	int numbytes = (int)length * 4; //number of 32 bit integers to skip
-	int i = 0;
-	for(i; i < numbytes; i++)
-	{
-		getc(fp);
-	}
-	printf("Skipped %d 32 bit ints:\n", length);
 }
 ///////////////////////////////////////////////////////////
 
