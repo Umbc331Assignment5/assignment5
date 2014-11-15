@@ -29,9 +29,10 @@ void read_burn(FILE * fp, uint8_t length);
 void read_ascii(FILE * fp, uint8_t length);
 int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version);
 uint8_t checkchecksum(dummy * dp);
+uint32_t read_skipinstruction(FILE * fp);
 
 //global for skipping N datagrams
-int skipnumber = 0;
+uint32_t skipnumber = 0;
 
 //TYPES
 const uint8_t SIXTEEN_BIT_INT = 0;
@@ -66,12 +67,13 @@ int main(int argc, char ** argv)
 		
 		if(skipnumber > 0)
 		{
-			printf("\nWe read version %d type %d length %d skipbit %d\n",
+			printf("\nSkipped: We read version %d type %d length %d skipbit %d\n",
 					(int)theversion, (int)thetype, 
 					(int)thelength, (int)skipbit);
-			//read_junk(fp, typetosize(thetype) * thelength);//hack to skip right number of bytes
+			//read_junk(fp, 4 * thelength);//hack to skip right number of bytes
 			read_junk(fp, (int)thelength);
-			skipnumber--;			
+			skipnumber--;	
+			continue;		
 		}
 
 		//checks the skip bit if true proccess the next thelength bytes as junk
@@ -102,7 +104,7 @@ int main(int argc, char ** argv)
 			uint8_t dupbit = headbuff->s & 0x2;
 			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
 			
-			if(checksum != checkchecksum(headbuff))
+			if((checksum != 0) && checksum != checkchecksum(headbuff))
 			{
 				printf("\nWe read version: %d type %d length: %d skipbit: %d dupbit: %d checksum: %d\n",
 						(int)theversion, (int)thetype,
@@ -139,7 +141,7 @@ int main(int argc, char ** argv)
 			uint8_t id = headbuff->s & 0xFE;
 			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
 
-			if(checksum != checkchecksum(headbuff))
+			if((checksum != 0) && checksum != checkchecksum(headbuff))
 			{ 
 				printf("\nWe read version: %d type %d length: %d skipbit: %d checksum: %d\n",
 						(int)theversion, (int)thetype,
@@ -208,8 +210,7 @@ int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version)
 		}
 		case 9: // skip
 		{
-			skipnumber = length;
-			//read_skip(fp,length);
+			skipnumber += (int) read_skipinstruction(fp);
 			break;
 		}
 		case 10: // burn
@@ -405,6 +406,25 @@ uint8_t checkchecksum(dummy * dp)
 	return 256 - checksum;
 }
 ///////////////////////////////////////////////////////////
+
+//Reads length number of 32 bit integers
+uint32_t read_skipinstruction(FILE * fp)
+{
+	uint32_t * number = malloc(4); //allocate space 32 bits 4 bytes
+	int result; 	//for storing number of successful things read by fread
+	uint32_t value;
+	//Didnt have enough file to read the number of items
+	if((result = fread(number,sizeof(uint32_t),1,fp)) != 1)
+	{
+		printf("Invalid number of items ran out of file\n");
+		free(number);
+		return;
+	}
+	printf("Skipp number: %u\n",*number);
+	value = *number;
+	free(number);
+	return value;
+}
 
 
 
