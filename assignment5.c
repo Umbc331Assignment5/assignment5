@@ -231,7 +231,6 @@ int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version)
 	return 0;
 }
 
-
 /////All assume length is the number of the items specified
 ///////////////////////////////////////////////////////////
 //Reads length number of 16 bit integers
@@ -420,14 +419,10 @@ uint32_t read_skipinstruction(FILE * fp)
 		free(number);
 		return;
 	}
-	printf("Skipp number: %u\n",*number);
+	printf("Skipp N Datagrams: %u\n",*number);
 	value = *number;
 	free(number);
 	return value;
 }
-
-
-
-
 
 
