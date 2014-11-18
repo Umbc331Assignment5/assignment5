@@ -2,10 +2,22 @@
 #include <stdlib.h>
 #include <stdint.h>
 /*
-*	Authors: Matt Henry
-*
+*	Authors:	Matt Henry, Katie Swanson, Jin Hui Xu, Richard Buck
+*	Usage:		on linux gcc -o assignment5 assignment5.c
+*				./assignment5 inputfile
 */
-typedef struct dummy
+
+//TYPES
+#define SIXTEEN_BIT_INT 0
+#define THIRTY_TWO_BIT_INTEGER 1
+#define THIRTY_TWO_BIT_FLOATING 2
+#define SIXTY_FOUR_BIT_FLOATING 3
+#define ASCII_CHAR 7
+#define JUNK 8
+#define SKIP 9
+#define BURN 10
+#define STOP 11
+typedef struct header
 {
 	union versiontype 
 	{
@@ -14,12 +26,10 @@ typedef struct dummy
 	}vt;
 	uint8_t length;
 	uint16_t s;
-} dummy;
+} header;
 
-//TODO Length is wrong should be strictly number of bytes
-//TODO	Add your names
 //TODO	rewrite/clean up make pretty the code
-
+//function declarations
 void read_sixteenbit_i(FILE * fp, uint8_t length);
 void read_thirtytwobit_i(FILE * fp, uint8_t length);
 void read_thirtytwobit_f(FILE * fp, uint8_t length);
@@ -28,34 +38,23 @@ void read_junk(FILE * fp, uint8_t length);
 void read_burn(FILE * fp, uint8_t length);
 void read_ascii(FILE * fp, uint8_t length);
 int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version);
-uint8_t checkchecksum(dummy * dp);
+uint8_t checkchecksum(header * dp);
 uint32_t read_skipinstruction(FILE * fp);
 
 //global for skipping N datagrams
 uint32_t skipnumber = 0;
 
-//TYPES
-const uint8_t SIXTEEN_BIT_INT = 0;
-const uint8_t THIRTY_TWO_BIT_INTEGER = 1;
-const uint8_t THIRTY_TWO_BIT_FLOATING = 2;
-const uint8_t SIXTY_FOUR_BIT_FLOATING = 3;
-const uint8_t ASCII_CHAR = 7;
-const uint8_t JUNK = 8;
-const uint8_t SKIP = 9;
-const uint8_t BURN = 10;
-const uint8_t STOP = 11;
-
 int main(int argc, char ** argv)
 {
 	argv++; // make it look at first argument
 	FILE * fp = NULL;
-	dummy * headbuff = malloc(4); // all versions have a header 4 bytes long
+	header * headbuff = malloc(4); // all versions have a header 4 bytes long
 
 	if (headbuff==NULL) { printf("Memory error\n"); return -1;}
 	fp = fopen(*argv, "rb");
 	if (fp==NULL) { printf("Error opening file\n"); return -2; }
 
-	size_t result;
+	size_t result;	//stores the number of succesfull items fread has read
 	
 	while((result = fread(headbuff, 4, 1, fp)) == 1)
 	{
@@ -65,68 +64,48 @@ int main(int argc, char ** argv)
 		uint8_t thelength = headbuff->length - 4;			//takes away the header length
 		uint8_t skipbit = headbuff->s & 0x1;				//takes first bit
 		
-		if(skipnumber > 0)
+		if(skipnumber > 0)	//We are skipping N(skipnumber) datagrams
 		{
-			printf("\nSkipped: We read version %d type %d length %d skipbit %d\n",
-					(int)theversion, (int)thetype, 
-					(int)thelength, (int)skipbit);
-			//read_junk(fp, 4 * thelength);//hack to skip right number of bytes
-			read_junk(fp, (int)thelength);
-			skipnumber--;	
-			continue;		
+			read_junk(fp, (int)thelength);	//skip the datagrams data section
+			skipnumber--;	//decrement the count
+			continue;		//Done time for next header
 		}
-
+		
 		//checks the skip bit if true proccess the next thelength bytes as junk
-		if(skipbit) // if skipbit is set
+		if(skipbit) //If skipbit is set
 		{
-			printf("\nWe read version %d type %d length %d skipbit %d\n",
-					(int)theversion, (int)thetype, 
-					(int)thelength, (int)skipbit);
-			//read_junk(fp, typetosize(thetype) * thelength);//hack to skip right number of bytes
-			read_junk(fp, (int)thelength);
-			continue;
+			read_junk(fp, (int)thelength);	//Just eats thelength number chars
+			continue;	//Goes to proccess next header
 		}
 
 		//version 1 datagram
 		if(theversion == 1)
 		{
-			printf("\nWe read version: %d type: %d length: %d skipbit: %d\n",
-					(int)theversion, (int)thetype,
-					(int)thelength ,(int)skipbit);
-
-			if(read_data(fp, thetype, thelength, theversion)){ break;} //if true were done
+			if(read_data(fp, thetype, thelength, theversion))//this is where the read happens returns 1 on stop command and burn command
+			{ 
+				break;	//if true we're done
+			} 
 			continue;
 		} //end version 1
 		
 		//version 2 datagram
 		if(theversion == 2)
 		{
-			uint8_t dupbit = headbuff->s & 0x2;
-			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
-			
+			uint8_t dupbit = headbuff->s & 0x2;	//look only at the dupbit
+			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;	//take only the checksum byte mask and then 8 bit shift to the right
+			//if checksum is 0 we assume that its valid
 			if((checksum != 0) && checksum != checkchecksum(headbuff))
 			{
-				printf("\nWe read version: %d type %d length: %d skipbit: %d dupbit: %d checksum: %d\n",
-						(int)theversion, (int)thetype,
-						(int)thelength, (int)skipbit,
-						(int)dupbit,(int)checksum);
-				printf("Bad Checksum\n");
-				//read_junk(fp, typetosize(thetype) * (int)thelength);//hack to skip right number of bytes
-				read_junk(fp, (int)thelength);
-				continue; 
+				read_junk(fp, (int)thelength);//ignore if checksum doesnt work
+				continue; //proccess next datagram
 			}
 
 			if(dupbit)
 			{
-				printf("\nWe read version: %d type %d length: %d skipbit: %d dupbit: %d\n",
-						(int)theversion, (int)thetype,
-						(int)thelength, (int)skipbit,
-						(int)dupbit);
-
 				fpos_t pos;
-				fgetpos(fp, &pos); //remember position
+				fgetpos(fp, &pos);	//remember position
 				if(read_data(fp, thetype, thelength, theversion)){ break;} //if true we're done
-				fsetpos(fp, &pos);
+				fsetpos(fp, &pos);	//restore position
 				if(read_data(fp, thetype, thelength, theversion)){ break;} //Read it again
 				continue;
 			}//end if dupbit
@@ -138,28 +117,15 @@ int main(int argc, char ** argv)
 		//version 3 datagram
 		if(theversion == 3)
 		{
-			uint8_t id = headbuff->s & 0xFE;
-			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;
-
+			uint8_t id = headbuff->s & 0xFE;	//take the 7 bit id field
+			uint8_t checksum = (headbuff->s & 0xFF00) >> 8;	//take the checksum byte
+			//if checksum is 0 we assume that its valid
 			if((checksum != 0) && checksum != checkchecksum(headbuff))
-			{ 
-				printf("\nWe read version: %d type %d length: %d skipbit: %d checksum: %d\n",
-						(int)theversion, (int)thetype,
-						(int)thelength, (int)skipbit,
-						(int)checksum);
-
-				printf("Bad Checksum\n");
-				//read_junk(fp, typetosize(thetype) * (int)thelength);//hack to skip right number of bytes
-				read_junk(fp, (int)thelength);
-				continue;  
+			{
+				read_junk(fp, (int)thelength);	//ignore data if checksums bad
+				continue;  //proccess next checksum
 			}
 			
-
-			printf("\nWe read version: %d type: %d length: %d skipbit: %d id: %d checksum: %d\n",
-					(int)theversion, (int)thetype,
-					(int)thelength, (int)skipbit,
-					(int)id, (int)checksum);
-
 			if(read_data(fp, thetype, thelength, theversion)){ break;} //if true were done
 			continue;
 		} //end version 3
@@ -178,49 +144,50 @@ int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version)
 {
 	switch(type)
 	{
-		case 0: // 16 bit int
+		case SIXTEEN_BIT_INT: // 16 bit int
 		{
 			read_sixteenbit_i(fp,length);
 			break;
 		}
-		case 1: // 32 bit int
+		case THIRTY_TWO_BIT_INTEGER: // 32 bit int
 		{
 			read_thirtytwobit_i(fp, length);
 			break;
 		}
-		case 2: // 32 bit float
+		case THIRTY_TWO_BIT_FLOATING: // 32 bit float
 		{
 			read_thirtytwobit_f(fp,length);
 			break;
 		}
-		case 3: // 64 bit float
+		case SIXTY_FOUR_BIT_FLOATING: // 64 bit float
 		{
 			read_sixtyfourbit_f(fp,length);
 			break;
 		}
-		case 7: // ascii
+		case ASCII_CHAR: // ascii
 		{
 			read_ascii(fp,length);
 			break;
 		}
-		case 8: // junk
+		case JUNK: // junk
 		{
 			read_junk(fp,length);
 			break;
 		}
-		case 9: // skip
+		case SKIP: // skip
 		{
-			skipnumber += (int) read_skipinstruction(fp);
+			skipnumber += (int) read_skipinstruction(fp); //increase the skip number by specified amount
 			break;
 		}
-		case 10: // burn
+		case BURN: // burn
 		{
 			read_burn(fp,length);
+			return 4143; //We're on fire (also exits)
 			break;
 		}
-		case 11: // stop
+		case STOP: // stop
 		{
-			return 1; //Were done
+			return 1; //Were done exit program
 			break;
 		}
 		default:
@@ -236,9 +203,7 @@ int read_data(FILE * fp, uint8_t type, uint8_t length, uint8_t version)
 //Reads length number of 16 bit integers
 void read_sixteenbit_i(FILE * fp, uint8_t length)
 {
-	//uint16_t * numbers = malloc(sizeof(uint16_t) * length); //allocate space
 	uint16_t * numbers = malloc(length); //allocate space
-
 	uint16_t * temp = numbers;				//pointer for iterating
 	int numberthings = length / 2;
 	int result;	//for storing number of successful things read by fread
@@ -251,13 +216,12 @@ void read_sixteenbit_i(FILE * fp, uint8_t length)
 		free(numbers);
 		return;
 	}
-	//print what we read in TODO:double check this is correct representation
+	//print loop
 	for(;i < numberthings;i++)
 	{
-		printf("16 bit number %u\n",(short)*temp);
+		printf("%d",(short)*temp);
 		temp++;
 	}
-
 	free(numbers);
 }
 ///////////////////////////////////////////////////////////
@@ -265,7 +229,6 @@ void read_sixteenbit_i(FILE * fp, uint8_t length)
 //Reads length number of 32 bit integers
 void read_thirtytwobit_i(FILE * fp, uint8_t length)
 {
-	//uint32_t * numbers = malloc(sizeof(uint32_t) * length); //allocate space
 	uint32_t * numbers = malloc(length); //allocate space
 	uint32_t * temp = numbers; //get an iterating pointer
 	int numberthings = length / 4;
@@ -279,10 +242,10 @@ void read_thirtytwobit_i(FILE * fp, uint8_t length)
 		free(numbers);
 		return;
 	}
-	//print what we read in TODO:double check this is correct representation
+	//print loop
 	for(;i < numberthings;i++)
 	{
-		printf("32 bit number %d\n",*temp);
+		printf("%d",*temp);
 		temp++;
 	}
 	free(numbers);
@@ -292,11 +255,9 @@ void read_thirtytwobit_i(FILE * fp, uint8_t length)
 //Reads in length number of 32 bit floating point numbers
 void read_thirtytwobit_f(FILE * fp, uint8_t length)
 {
-	//uint32_t * numbers = malloc(sizeof(uint32_t) * length);
-	uint32_t * numbers = malloc(length);
-	uint32_t * temp = numbers;
+	uint32_t * numbers = malloc(length);	//allocate space
+	uint32_t * temp = numbers;				//iterator
 	int numberthings = length / 4;
-
 	int result; 	//for storing number of successful things read by fread
 	int i = 0;		//for our printing loop below
 
@@ -307,14 +268,12 @@ void read_thirtytwobit_f(FILE * fp, uint8_t length)
 		free(numbers);
 		return;
 	}
-	//print what we read in TODO:double check this is correct representation
+	//print loop
 	for(;i < numberthings;i++)
 	{
-		printf("32 bit number %f\n",(float)*temp);
+		printf("%f",(float)*temp);
 		temp++;
 	}
-
-	//printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
 ///////////////////////////////////////////////////////////
@@ -322,11 +281,9 @@ void read_thirtytwobit_f(FILE * fp, uint8_t length)
 //Reads in length number of 64 bit floating point numbers
 void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 {
-	//uint64_t * numbers = malloc(sizeof(uint64_t) * length);
-	uint64_t * numbers = malloc(length);
-	uint64_t * temp = numbers;
+	uint64_t * numbers = malloc(length);	//allocate space
+	uint64_t * temp = numbers;				//iterator
 	int numberthings = (int)length / 8;
-
 	int result; 	//for storing number of successful things read by fread
 	int i = 0;		//for our printing loop below
 
@@ -337,14 +294,13 @@ void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 		free(numbers);
 		return;
 	}
-	//print what we read in TODO:double check this is correct representation
+	//print loop
 	for(;i < numberthings;i++)
 	{
 		printf("64 bit number %f\n",(double)*temp);
+		printf("%f",(double)*temp);
 		temp++;
 	}
-
-	//printf("Bytes: %d\n", numbytes);
 	free(numbers);
 }
 ///////////////////////////////////////////////////////////
@@ -352,8 +308,7 @@ void read_sixtyfourbit_f(FILE * fp, uint8_t length)
 //Reads in length number of bytes and tries to print them, adds '\0' 
 void read_ascii(FILE * fp, uint8_t length)
 {
-	//uint8_t * asciichars = malloc((sizeof(uint8_t) * length) +1); //one more for \0
-	uint8_t * asciichars = malloc(length +1); //one more for \0
+	uint8_t * asciichars = malloc(length + 1); //one more for \0
 	uint8_t * temp = asciichars;	//iterator pointer
 	int numbytes = (int)length;		//Debug
 	int result;
@@ -365,10 +320,9 @@ void read_ascii(FILE * fp, uint8_t length)
 		free(asciichars);
 		return;
 	}
-	temp = temp + length;	//goto end of string
+	temp = temp + length;	//goto end of string with pointer arithmatic
 	*temp = '\0'; 			//add the nullbyte
-	printf("Ascii chars: %s\n", asciichars);	//prints whole string
-	//printf("Bytes: %d\n", numbytes);	//Debug
+	printf("%s", asciichars);	//prints whole string
 	free(asciichars);
 }
 ///////////////////////////////////////////////////////////
@@ -382,7 +336,6 @@ void read_junk(FILE * fp, uint8_t length)
 	{
 		getc(fp); //grabs another char
 	}
-	printf("Ignored %d Bytes: \n", numbytes);
 }
 ///////////////////////////////////////////////////////////
 
@@ -395,8 +348,8 @@ void read_burn(FILE * fp, uint8_t length)
 }
 ///////////////////////////////////////////////////////////
 
-//returns checksum value calculated from the dummy struct pointer
-uint8_t checkchecksum(dummy * dp)
+//returns checksum value calculated from the header struct pointer
+uint8_t checkchecksum(header * dp)
 {
 	uint8_t checksum = 0;
 	checksum += dp->vt.version; //has version and type inside
@@ -419,7 +372,6 @@ uint32_t read_skipinstruction(FILE * fp)
 		free(number);
 		return;
 	}
-	printf("Skipp N Datagrams: %u\n",*number);
 	value = *number;
 	free(number);
 	return value;
